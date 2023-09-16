@@ -146,6 +146,7 @@
     <ClCompile Include="Chat.cpp" />
     <ClCompile Include="chat_server_mysql.cpp" />
     <ClCompile Include="database_routine.cpp" />
+    <ClCompile Include="Logger.cpp" />
     <ClCompile Include="Message.cpp" />
     <ClCompile Include="Network.cpp" />
     <ClCompile Include="NewExceptions.cpp" />
@@ -155,6 +156,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Chat.h" />
+    <ClInclude Include="Logger.h" />
     <ClInclude Include="Message.h" />
     <ClInclude Include="NewExceptions.h" />
     <ClInclude Include="Template.h" />

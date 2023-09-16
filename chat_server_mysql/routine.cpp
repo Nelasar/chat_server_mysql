@@ -8,6 +8,7 @@
 #include "Network.cpp"
 #include "database_routine.cpp"
 #include "Chat.h"
+#include "Logger.h"
 
 #define NO_USER -1 // для функции поиска , означает, что пользователь не найден
 
@@ -18,7 +19,15 @@ static Array<User> users;                                       // массив, в кот
 static User* current_user;                                      // текущий пользователь, используется для входа в чат и при
 static Chat* global_chat;                                       // переменная для работы с глобальным чатом
 static std::string users_path_string = "C:\\ChatUsers\\";       // путь для хранения папок пользователей
+static Logger* logger = new Logger;
 
+
+inline void writer(const std::string& msg) {
+    logger->write_log(msg);
+}
+inline void reader() {
+    std::cout << "LAST LOGGED MESSAGE: " << logger->read_log();
+}
 
 // ФУНКЦИИ ДЛЯ ЧАТОВ
 // всомогательная функция работы глобального чата для функции main_menu
@@ -470,6 +479,13 @@ static WSAData wsaDataMysql;
 static SOCKET server_socket;
 static sockaddr_in local_addr;
 
+///////////////////////////////////
+///////////////////////////////////
+///////////////////////////////////
+///////////////////////////////////
+///////////////////////////////////
+///////////////////////////////////
+///////////////////////////////////
 
 inline void authorization(int bsize, sockaddr_in client_addr, int client_addr_size) {
     strcpy(&buffer[0], "ACCEPT");
@@ -479,6 +495,11 @@ inline void authorization(int bsize, sockaddr_in client_addr, int client_addr_si
     buffer[bsize] = 0;
 
     std::string login{ buffer };
+    std::string logged_login = login + '\n';
+
+    std::thread w1(writer, logged_login);
+    w1.join();
+
     login.erase(std::remove(login.begin(), login.end(), '\n'), login.end());
     login = '\'' + login + '\'';
 
@@ -550,7 +571,7 @@ inline void registration(int bsize, sockaddr_in client_addr, int client_addr_siz
 }
 
 inline void messaging(int bsize, sockaddr_in client_addr, int client_addr_size) {
-    std::cout << "BUFFER IN MESSAGING: " << buffer << std::endl; // MESSAGE HERE
+    std::cout << "BUFFER IN MESSAGING: " << buffer << std::endl;    
     std::string chat_history{};
     
     mysql_query(&mysql, "SELECT * FROM Chat");
@@ -571,23 +592,28 @@ inline void messaging(int bsize, sockaddr_in client_addr, int client_addr_size) 
     memset(&buffer[0], 0, sizeof(buffer));
     memcpy(buffer, chat_history.c_str(), chat_history.length());
     
-    std::cout << "BUFFER WITH HISTORY: " << buffer << std::endl;
-
     sendto(server_socket, &buffer[0], sizeof(buffer) - 1, 0, (sockaddr*)&client_addr, sizeof(client_addr));
 
     bsize = recvfrom(server_socket, &buffer[0], strlen(buffer), 0, (sockaddr*)&client_addr, &client_addr_size);
     buffer[bsize] = 0;
 
-    std::cout << "BUFFER WITH MESSAGE: " << buffer << std::endl;
-
     std::string message{ buffer };
+
+    std::thread r1(reader);
+    std::thread w1(writer, message);
+    std::thread r2(reader);
+
+    r1.join();
+    w1.join();
+    r2.join();
+
     message = '\'' + message + '\'';
 
     std::string query = "INSERT INTO Chat(id, message, time) VALUES (default, " + message + ", default)";
-    std::cout << query << std::endl;
+    // std::cout << query << std::endl;
+    std::string logged_query = query + '\n';
 
     int result = mysql_query(&mysql, query.c_str());
-    std::cout << result << std::endl;
 
     return;
 }
@@ -649,6 +675,14 @@ inline void main_server_loop() {
               ntohs(client_addr.sin_port));
 
         std::cout << "REQUEST: " << buffer;
+
+        std::string request{ buffer };
+        request += '\n';
+
+        std::thread w1(reader);
+        std::thread r1(writer, request);
+        r1.join();
+        w1.join();
 
         buffer[bsize] = 0;
 
